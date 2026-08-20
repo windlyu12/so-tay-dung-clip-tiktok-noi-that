@@ -1,0 +1,346 @@
+/* ============================================================
+   GIÁO TRÌNH RENDER KUJIALE — "Phòng render / dải Kelvin"
+   Nền tối studio + accent theo nhiệt độ màu 2700K → 6500K
+   ============================================================ */
+
+:root {
+  --bg: #131110;
+  --bg-deep: #0d0c0b;
+  --surface: #1d1a17;
+  --surface-2: #26221e;
+  --line: #35302a;
+  --text: #ece5da;
+  --text-dim: #b5aa9b;
+  --muted: #857b6d;
+  --accent: #ffc987;            /* mỗi trang ghi đè */
+  --accent-soft: rgba(255, 201, 135, .13);
+  --warn: #ffb054;
+  --tip: #7fd8c8;
+  --pin: #f0a4c8;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Be Vietnam Pro", -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --sidebar-w: 300px;
+  --content-w: 76ch;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Nền hạt phim + quầng sáng góc — không khí phòng render */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(1100px 500px at 85% -5%, var(--accent-soft), transparent 60%),
+    radial-gradient(900px 600px at -10% 105%, rgba(110, 164, 244, .07), transparent 55%);
+}
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .028 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Thanh tiến độ đọc ---------- */
+#progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0;
+  background: linear-gradient(90deg, #ff9540, var(--accent));
+  z-index: 60; box-shadow: 0 0 12px var(--accent);
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-w);
+  background: var(--bg-deep); border-right: 1px solid var(--line);
+  overflow-y: auto; z-index: 40; padding: 26px 0 40px;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.sidebar .brand {
+  display: block; padding: 0 22px 18px; text-decoration: none;
+  border-bottom: 1px solid var(--line); margin-bottom: 14px;
+}
+.sidebar .brand .kicker {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--muted);
+}
+.sidebar .brand .name {
+  font-family: var(--font-display); font-weight: 900; font-size: 21px;
+  color: var(--text); line-height: 1.25; margin-top: 4px;
+}
+.sidebar .brand .kelvin-bar {
+  height: 5px; border-radius: 3px; margin-top: 12px;
+  background: linear-gradient(90deg, #ff9540, #ffc987, #f2ecd8, #b9d3f2, #6ea4f4);
+}
+.nav-group { padding: 10px 12px 2px; }
+.nav-group .label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--muted); padding: 6px 10px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 7px 10px; border-radius: 9px; text-decoration: none;
+  color: var(--text-dim); font-size: 13.5px; line-height: 1.35;
+  transition: background .15s, color .15s;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active { background: var(--surface-2); color: var(--text); }
+.nav-item .chip {
+  flex: 0 0 auto; width: 30px; height: 22px; border-radius: 6px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+  display: grid; place-items: center;
+  color: #131110; background: var(--c, var(--accent));
+}
+.nav-item.active .chip { box-shadow: 0 0 10px var(--c, var(--accent)); }
+.nav-item .done-dot {
+  margin-left: auto; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%;
+  background: transparent; border: 1px solid var(--line);
+}
+.nav-item.is-done .done-dot { background: #8be3c6; border-color: #8be3c6; box-shadow: 0 0 6px #8be3c680; }
+
+#nav-toggle {
+  display: none; position: fixed; top: 14px; left: 14px; z-index: 50;
+  width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font-size: 19px; cursor: pointer;
+}
+
+/* ---------- Khung nội dung ---------- */
+.main { position: relative; z-index: 1; margin-left: var(--sidebar-w); }
+.page { max-width: var(--content-w); margin: 0 auto; padding: 54px 34px 90px; }
+
+/* ---------- Header chương ---------- */
+.ch-head { margin-bottom: 42px; position: relative; }
+.ch-head .ch-no {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(88px, 14vw, 148px); line-height: .9;
+  color: transparent; -webkit-text-stroke: 1.5px var(--accent);
+  opacity: .8; letter-spacing: -.02em; user-select: none;
+}
+.ch-head .ch-meta {
+  display: flex; gap: 10px; align-items: center; margin: 14px 0 10px; flex-wrap: wrap;
+}
+.ch-head .tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
+  text-transform: uppercase; color: #131110; background: var(--accent);
+  padding: 3px 10px; border-radius: 999px; font-weight: 600;
+}
+.ch-head .tag.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.ch-head h1.ch-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(30px, 4.6vw, 44px); line-height: 1.15; letter-spacing: -.01em;
+}
+.ch-head .ch-hook { color: var(--text-dim); margin-top: 12px; font-size: 17px; max-width: 60ch; }
+
+/* ---------- Typography nội dung ---------- */
+.content h1 { display: none; } /* h1 gốc trong markdown — đã thay bằng ch-head */
+.content h2 {
+  font-family: var(--font-display); font-weight: 700; font-size: 26px;
+  line-height: 1.25; margin: 52px 0 16px; padding-top: 14px;
+  border-top: 1px solid var(--line); scroll-margin-top: 24px;
+}
+.content h2::before {
+  content: "◆"; color: var(--accent); font-size: 12px;
+  margin-right: 10px; vertical-align: 3px;
+}
+.content h3 {
+  font-size: 18.5px; font-weight: 700; margin: 34px 0 10px; color: var(--text);
+  scroll-margin-top: 24px;
+}
+.content p { margin: 0 0 16px; }
+.content ul, .content ol { margin: 0 0 18px; padding-left: 26px; }
+.content li { margin-bottom: 7px; }
+.content li::marker { color: var(--accent); }
+.content strong { color: #fff; font-weight: 600; }
+.content em { color: var(--text-dim); }
+.content a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
+.content hr { border: none; border-top: 1px dashed var(--line); margin: 40px 0; }
+.content code {
+  font-family: var(--font-mono); font-size: .86em;
+  background: var(--surface-2); border: 1px solid var(--line);
+  padding: 1px 6px; border-radius: 5px; color: #ffd9a3;
+}
+.content pre {
+  background: var(--bg-deep); border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 20px; overflow-x: auto; margin: 0 0 20px; font-size: 13.5px; line-height: 1.6;
+}
+.content pre code { background: none; border: none; padding: 0; color: var(--text-dim); }
+
+/* ---------- Callouts (⚠️ 💡 📌) ---------- */
+.content blockquote {
+  margin: 0 0 20px; padding: 15px 18px 15px 20px;
+  border-left: 3px solid var(--muted); border-radius: 0 12px 12px 0;
+  background: var(--surface); color: var(--text-dim);
+}
+.content blockquote p:last-child { margin-bottom: 0; }
+.content blockquote.warn {
+  border-color: var(--warn); background: rgba(255, 176, 84, .09); color: var(--text);
+  box-shadow: inset 0 0 40px rgba(255, 176, 84, .04);
+}
+.content blockquote.tip  { border-color: var(--tip);  background: rgba(127, 216, 200, .07); color: var(--text); }
+.content blockquote.pin  { border-color: var(--pin);  background: rgba(240, 164, 200, .07); color: var(--text); }
+
+/* ---------- Bảng ---------- */
+.table-scroll {
+  overflow-x: auto; margin: 0 0 22px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--surface);
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.content table { border-collapse: collapse; width: 100%; font-size: 14.2px; line-height: 1.55; }
+.content th {
+  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .1em; text-align: left; color: var(--accent);
+  background: var(--bg-deep); padding: 11px 14px; position: sticky; top: 0;
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.content td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.content tr:last-child td { border-bottom: none; }
+.content tbody tr:nth-child(odd) { background: rgba(255, 255, 255, .015); }
+.content tbody tr:hover { background: var(--accent-soft); }
+
+/* ---------- Checkbox tương tác (checklist) ---------- */
+li.task { list-style: none; margin-left: -26px; padding-left: 0; }
+li.task label {
+  display: flex; gap: 11px; align-items: flex-start; cursor: pointer;
+  padding: 7px 12px; border-radius: 9px; transition: background .15s;
+}
+li.task label:hover { background: var(--surface); }
+li.task input[type="checkbox"] {
+  appearance: none; flex: 0 0 auto; width: 19px; height: 19px; margin-top: 3px;
+  border: 1.5px solid var(--muted); border-radius: 6px; cursor: pointer;
+  display: grid; place-items: center; transition: all .15s; background: transparent;
+}
+li.task input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+li.task input[type="checkbox"]:checked::after { content: "✓"; color: #131110; font-size: 13px; font-weight: 700; }
+li.task input[type="checkbox"]:checked + span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+
+/* ---------- Mục lục trong chương ---------- */
+details.page-toc {
+  margin: 0 0 34px; border: 1px dashed var(--line); border-radius: 12px;
+  padding: 12px 18px; background: var(--surface);
+}
+details.page-toc summary {
+  cursor: pointer; font-family: var(--font-mono); font-size: 11.5px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--text-dim);
+}
+details.page-toc ol { margin: 12px 0 4px; padding-left: 22px; font-size: 14.5px; }
+details.page-toc a { color: var(--text-dim); text-decoration: none; }
+details.page-toc a:hover { color: var(--accent); }
+
+/* ---------- Điều hướng cuối chương ---------- */
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 64px; }
+.pager a {
+  display: block; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px;
+  text-decoration: none; background: var(--surface); transition: all .18s;
+}
+.pager a:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.pager .dir { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.pager .t { color: var(--text); font-weight: 600; font-size: 14.5px; margin-top: 5px; line-height: 1.4; }
+.pager a.next { text-align: right; }
+.pager a.only-next { grid-column: 2; }
+
+.mark-read {
+  margin-top: 26px; width: 100%; padding: 13px; border-radius: 12px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  background: transparent; color: var(--text-dim); border: 1px dashed var(--line); transition: all .18s;
+}
+.mark-read:hover { border-color: #8be3c6; color: #8be3c6; }
+.mark-read.done { border-style: solid; border-color: #8be3c6; color: #8be3c6; background: rgba(139, 227, 198, .06); }
+
+/* ---------- TRANG CHỦ ---------- */
+.hero { padding: 76px 34px 40px; max-width: 1080px; margin: 0 auto; }
+.hero .kicker {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .3em;
+  text-transform: uppercase; color: var(--accent);
+}
+.hero h1 {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(42px, 7vw, 84px); line-height: 1.02; letter-spacing: -.02em;
+  margin: 18px 0 20px; max-width: 14ch;
+}
+.hero h1 .grad {
+  background: linear-gradient(92deg, #ff9540 5%, #ffc987 35%, #f2ecd8 55%, #b9d3f2 78%, #6ea4f4 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero .sub { color: var(--text-dim); font-size: 18px; max-width: 58ch; }
+.hero .cta-row { display: flex; gap: 14px; margin-top: 30px; flex-wrap: wrap; }
+.hero .cta {
+  display: inline-block; padding: 13px 26px; border-radius: 999px; text-decoration: none;
+  font-weight: 600; font-size: 15px; transition: all .18s;
+}
+.hero .cta.primary { background: var(--text); color: var(--bg-deep); }
+.hero .cta.primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,255,255,.12); }
+.hero .cta.ghost { border: 1px solid var(--line); color: var(--text-dim); }
+.hero .cta.ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Thước Kelvin */
+.kelvin-ruler { max-width: 1080px; margin: 26px auto 0; padding: 0 34px; }
+.kelvin-ruler .bar {
+  height: 10px; border-radius: 6px;
+  background: linear-gradient(90deg, #ff9540, #ffc987, #f2ecd8, #b9d3f2, #6ea4f4);
+  box-shadow: 0 0 30px rgba(255, 170, 90, .25);
+}
+.kelvin-ruler .marks {
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; color: var(--muted);
+}
+
+.grid-wrap { max-width: 1080px; margin: 0 auto; padding: 44px 34px 90px; }
+.grid-wrap .sec-label {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .24em;
+  text-transform: uppercase; color: var(--muted); margin: 34px 0 16px;
+}
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(235px, 1fr)); gap: 14px; }
+.card {
+  position: relative; display: flex; flex-direction: column; min-height: 168px;
+  padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface); text-decoration: none; overflow: hidden; transition: all .2s;
+}
+.card:hover { transform: translateY(-4px); border-color: var(--c); box-shadow: 0 14px 34px rgba(0,0,0,.4); }
+.card::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 3px;
+  background: var(--c); opacity: .85;
+}
+.card .no {
+  font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: 1;
+  color: transparent; -webkit-text-stroke: 1.2px var(--c);
+}
+.card:hover .no { color: var(--c); -webkit-text-stroke: 0; transition: color .2s; }
+.card .t { font-weight: 600; font-size: 15.5px; color: var(--text); margin: 10px 0 6px; line-height: 1.35; }
+.card .d { font-size: 13px; color: var(--muted); line-height: 1.5; flex: 1; }
+.card .meta {
+  margin-top: 12px; font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: .1em; color: var(--muted); display: flex; justify-content: space-between;
+}
+.card .meta .read-badge { color: #8be3c6; opacity: 0; }
+.card.is-done .meta .read-badge { opacity: 1; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 980px) {
+  .sidebar { transform: translateX(-100%); transition: transform .25s ease; box-shadow: 20px 0 60px rgba(0,0,0,.5); }
+  .sidebar.open { transform: translateX(0); }
+  #nav-toggle { display: block; }
+  .main { margin-left: 0; }
+  .page { padding: 76px 22px 70px; }
+  .hero { padding-top: 84px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager a.next, .pager a.only-next { grid-column: auto; text-align: left; }
+}
+
+/* ---------- In ấn ---------- */
+@media print {
+  :root { --bg: #fff; --bg-deep: #fff; --surface: #f6f4f0; --surface-2: #efece6; --line: #ccc; --text: #1a1a1a; --text-dim: #444; --muted: #777; }
+  body::before, body::after, #progress, .sidebar, #nav-toggle, .pager, .mark-read, details.page-toc { display: none !important; }
+  .main { margin-left: 0; }
+  .page { max-width: 100%; padding: 0; }
+  .ch-head .ch-no { -webkit-text-stroke: 1px #999; }
+  .content th { color: #333; background: #eee; position: static; }
+  li.task input[type="checkbox"] { border-color: #999; }
+  .content blockquote.warn { background: #fff6e8; }
+  a { color: inherit; text-decoration: none; }
+}
